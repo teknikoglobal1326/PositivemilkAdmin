@@ -31,17 +31,35 @@ function ReportsList() {
     quarterly: false,
     yearly: false,
   });
+  const [pagination, setPagination] = useState({
+    monthly: { current: 1, pageSize: 10, total: 0 },
+    quarterly: { current: 1, pageSize: 10, total: 0 },
+    yearly: { current: 1, pageSize: 10, total: 0 },
+  });
   const [searchText, setSearchText] = useState("");
   const [activeTab, setActiveTab] = useState("monthly");
 
-  // Fetch reports for a specific type
-  const fetchReports = async (type) => {
+  // Fetch reports for a specific type with server-side pagination & search
+  const fetchReports = async (
+    type,
+    page = 1,
+    limit = 10,
+    search = searchText
+  ) => {
     setLoading((prev) => ({ ...prev, [type]: true }));
     try {
-      const data = await getReportsList(type);
+      const data = await getReportsList(type, page, limit, search);
       setReports((prev) => ({
         ...prev,
         [type]: data?.data || [],
+      }));
+      setPagination((prev) => ({
+        ...prev,
+        [type]: {
+          current: page,
+          pageSize: limit,
+          total: data?.total || 0,
+        },
       }));
     } catch {
       message.error(`Failed to load ${type} reports`);
@@ -52,24 +70,27 @@ function ReportsList() {
 
   // Load initial data
   useEffect(() => {
-    fetchReports("monthly");
+    fetchReports("monthly", 1, 10, "");
   }, []);
 
   // Handle tab change
   const handleTabChange = (key) => {
     setActiveTab(key);
     if (reports[key].length === 0) {
-      fetchReports(key);
+      fetchReports(key, 1, pagination[key]?.pageSize || 10, searchText);
     }
   };
 
-  // Filter reports based on search text
-  const getFilteredData = (type) => {
-    return reports[type].filter((report) =>
-      Object.values(report || {}).some((value) =>
-        value?.toString().toLowerCase().includes(searchText.toLowerCase())
-      )
-    );
+  // Handle table pagination change
+  const handleTableChange = (type, page, pageSize) => {
+    fetchReports(type, page, pageSize, searchText);
+  };
+
+  // Handle search submit / clear
+  const handleSearch = (value) => {
+    const val = value ? value.trim() : "";
+    setSearchText(val);
+    fetchReports(activeTab, 1, pagination[activeTab]?.pageSize || 10, val);
   };
 
   // Handle download Excel report
@@ -267,15 +288,22 @@ function ReportsList() {
           </div>
           <Table
             columns={columns}
-            dataSource={getFilteredData("monthly")}
+            dataSource={reports.monthly}
             loading={loading.monthly}
-            rowKey={(record, index) => `monthly-${index}`}
+            rowKey={(record, index) =>
+              record._id || `monthly-${pagination.monthly.current}-${index}`
+            }
             pagination={{
-              pageSize: 10,
+              current: pagination.monthly.current,
+              pageSize: pagination.monthly.pageSize,
+              total: pagination.monthly.total,
               showSizeChanger: true,
               showQuickJumper: true,
+              pageSizeOptions: ["10", "20", "50", "100"],
               showTotal: (total, range) =>
                 `${range[0]}-${range[1]} of ${total} invoices`,
+              onChange: (page, pageSize) =>
+                handleTableChange("monthly", page, pageSize),
             }}
             className="bg-white rounded-lg shadow-sm"
             size="middle"
@@ -301,15 +329,22 @@ function ReportsList() {
           </div>
           <Table
             columns={columns}
-            dataSource={getFilteredData("quarterly")}
+            dataSource={reports.quarterly}
             loading={loading.quarterly}
-            rowKey={(record, index) => `quarterly-${index}`}
+            rowKey={(record, index) =>
+              record._id || `quarterly-${pagination.quarterly.current}-${index}`
+            }
             pagination={{
-              pageSize: 10,
+              current: pagination.quarterly.current,
+              pageSize: pagination.quarterly.pageSize,
+              total: pagination.quarterly.total,
               showSizeChanger: true,
               showQuickJumper: true,
+              pageSizeOptions: ["10", "20", "50", "100"],
               showTotal: (total, range) =>
                 `${range[0]}-${range[1]} of ${total} invoices`,
+              onChange: (page, pageSize) =>
+                handleTableChange("quarterly", page, pageSize),
             }}
             className="bg-white rounded-lg shadow-sm"
             size="middle"
@@ -335,15 +370,22 @@ function ReportsList() {
           </div>
           <Table
             columns={columns}
-            dataSource={getFilteredData("yearly")}
+            dataSource={reports.yearly}
             loading={loading.yearly}
-            rowKey={(record, index) => `yearly-${index}`}
+            rowKey={(record, index) =>
+              record._id || `yearly-${pagination.yearly.current}-${index}`
+            }
             pagination={{
-              pageSize: 10,
+              current: pagination.yearly.current,
+              pageSize: pagination.yearly.pageSize,
+              total: pagination.yearly.total,
               showSizeChanger: true,
               showQuickJumper: true,
+              pageSizeOptions: ["10", "20", "50", "100"],
               showTotal: (total, range) =>
                 `${range[0]}-${range[1]} of ${total} invoices`,
+              onChange: (page, pageSize) =>
+                handleTableChange("yearly", page, pageSize),
             }}
             className="bg-white rounded-lg shadow-sm"
             size="middle"
@@ -369,7 +411,18 @@ function ReportsList() {
           <Input.Search
             placeholder={`Search ${activeTab} reports...`}
             value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
+            onChange={(e) => {
+              setSearchText(e.target.value);
+              if (!e.target.value) {
+                fetchReports(
+                  activeTab,
+                  1,
+                  pagination[activeTab]?.pageSize || 10,
+                  ""
+                );
+              }
+            }}
+            onSearch={handleSearch}
             style={{ maxWidth: 400 }}
             size="middle"
             allowClear

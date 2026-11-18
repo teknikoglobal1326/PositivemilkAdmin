@@ -1,13 +1,19 @@
 import { message } from "antd";
 import axiosInstance from "@utils/axiosInstance";
 
-export const getReportsList = async (type) => {
+export const getReportsList = async (type, page = 1, limit = 10, search = "") => {
   try {
-    const response = await axiosInstance.get(`/api/admin/report?type=${type}`);
-    // console.log(response.data.data)
+    const params = new URLSearchParams();
+    if (type) params.append("type", type);
+    if (page) params.append("page", page);
+    if (limit) params.append("limit", limit);
+    if (search) params.append("search", search);
+
+    const response = await axiosInstance.get(
+      `/api/admin/report?${params.toString()}`
+    );
     return response.data;
   } catch (error) {
-    // console.log(error)
     message.error("Error fetching report list");
   }
 };
