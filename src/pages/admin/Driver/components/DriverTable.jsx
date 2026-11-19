@@ -11,7 +11,7 @@ import { useNavigate } from 'react-router';
 import { IoMdEye } from 'react-icons/io';
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
-const DriverTable = ({ searchText, data, loading, onSettleSuccess, activeTab }) => {
+const DriverTable = ({ searchText, data, loading, onSettleSuccess, activeTab, hasDateFilter }) => {
     const [isSettleModalVisible, setIsSettleModalVisible] = useState(false);
     const [selectedDriver, setSelectedDriver] = useState(null);
     const [settleAmount, setSettleAmount] = useState(0);
@@ -138,6 +138,42 @@ const DriverTable = ({ searchText, data, loading, onSettleSuccess, activeTab }) 
             key: 'licenseNumner',
             align: "center",
             render: (_, record) => record?.licenseNumber || '-'
+        },
+        {
+            title: 'Today Bottles',
+            dataIndex: 'todayBottleCount',
+            key: 'todayBottleCount',
+            align: 'center',
+            sorter: (a, b) => (a.todayBottleCount || 0) - (b.todayBottleCount || 0),
+            render: (count) => (
+                <Tag color={count > 0 ? "blue" : "default"} className="font-semibold px-2 py-0.5">
+                    {count || 0}
+                </Tag>
+            )
+        },
+        ...(hasDateFilter ? [{
+            title: 'Period Bottles',
+            dataIndex: 'filteredBottleCount',
+            key: 'filteredBottleCount',
+            align: 'center',
+            sorter: (a, b) => (a.filteredBottleCount || 0) - (b.filteredBottleCount || 0),
+            render: (count) => (
+                <Tag color={count > 0 ? "cyan" : "default"} className="font-semibold px-2 py-0.5">
+                    {count || 0}
+                </Tag>
+            )
+        }] : []),
+        {
+            title: 'Total Bottles',
+            dataIndex: 'totalBottleCount',
+            key: 'totalBottleCount',
+            align: 'center',
+            sorter: (a, b) => (a.totalBottleCount || 0) - (b.totalBottleCount || 0),
+            render: (count) => (
+                <Tag color={count > 0 ? "purple" : "default"} className="font-semibold px-2 py-0.5">
+                    {count || 0}
+                </Tag>
+            )
         },
         {
             title: 'Status',

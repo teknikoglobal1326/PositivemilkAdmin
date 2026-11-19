@@ -12,9 +12,13 @@ export const changeDriverPassword = async (driverId, newPassword) => {
 import { message } from "antd";
 import axiosInstance from "@utils/axiosInstance";
 
-export const getAllDrivers = async (type = 'all') => {
+export const getAllDrivers = async (type = 'all', params = {}) => {
   try {
-    const response = await axiosInstance.get(`/api/admin/driver/list?type=${type}`)
+    const queryObj = { type };
+    if (params.startDate) queryObj.startDate = params.startDate;
+    if (params.endDate) queryObj.endDate = params.endDate;
+    const queryParams = new URLSearchParams(queryObj);
+    const response = await axiosInstance.get(`/api/admin/driver/list?${queryParams.toString()}`);
     // console.log(response.data.data)
     return response.data;
   } catch (error) {
