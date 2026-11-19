@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from "react";
-import { Card, Descriptions, Tag, Button, Spin } from "antd";
+import { Card, Descriptions, Tag, Button, Spin, Space } from "antd";
 import { useParams, useNavigate } from "react-router";
 import { ArrowLeftOutlined, UserOutlined } from '@ant-design/icons';
 import { getUserDetailed } from "@services/admin/apiUser";
+import { getAddressFromCoordinates } from "@utils/getCurrentLocation";
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 const UserDetails = () => {
     const { userId } = useParams();
     const navigate = useNavigate();
     const [userData, setUserData] = useState(null);
+    const [fallbackAddress, setFallbackAddress] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -16,8 +18,20 @@ const UserDetails = () => {
             try {
                 setLoading(true);
                 const response = await getUserDetailed(userId);
-                console.log(response)
-                setUserData(response.data.user);
+                const user = response?.data?.user;
+                setUserData(user);
+
+                // If address not already resolved and coordinates exist, reverse geocode as fallback
+                if (user && (!user.location?.address || user.location.address === "N/A") && user.lat && user.long) {
+                    try {
+                        const geo = await getAddressFromCoordinates(user.lat, user.long);
+                        if (geo) {
+                            setFallbackAddress(geo);
+                        }
+                    } catch (geoErr) {
+                        console.error("Client geocode error:", geoErr);
+                    }
+                }
             } catch (error) {
                 console.error("Error fetching user data:", error);
             } finally {
@@ -111,16 +125,40 @@ const UserDetails = () => {
                     <Descriptions column={2}>
                         <Descriptions.Item label="Latitude">{userData.lat || "N/A"}</Descriptions.Item>
                         <Descriptions.Item label="Longitude">{userData.long || "N/A"}</Descriptions.Item>
-                        {userData.location && (
-                            <>
-                                <Descriptions.Item label="Address">{userData.location.address || "N/A"}</Descriptions.Item>
-                                <Descriptions.Item label="City">{userData.location.city || "N/A"}</Descriptions.Item>
-                                <Descriptions.Item label="State">{userData.location.state || "N/A"}</Descriptions.Item>
-                                <Descriptions.Item label="Pincode">{userData.location.pincode || "N/A"}</Descriptions.Item>
-                            </>
-                        )}
+                        <Descriptions.Item label="Address">{userData.location?.address || fallbackAddress?.address || "N/A"}</Descriptions.Item>
+                        <Descriptions.Item label="City">{userData.location?.city || fallbackAddress?.city || "N/A"}</Descriptions.Item>
+                        <Descriptions.Item label="State">{userData.location?.state || fallbackAddress?.state || "N/A"}</Descriptions.Item>
+                        <Descriptions.Item label="Pincode">{userData.location?.pincode || fallbackAddress?.pincode || "N/A"}</Descriptions.Item>
                     </Descriptions>
                 </Card>
+
+                {/* Saved Delivery Addresses */}
+                {userData.addresses && userData.addresses.length > 0 && (
+                    <Card title={`Saved Delivery Addresses (${userData.addresses.length})`} bordered>
+                        <div className="grid gap-4 md:grid-cols-2">
+                            {userData.addresses.map((addr, idx) => (
+                                <Card
+                                    key={addr._id || idx}
+                                    size="small"
+                                    title={addr.name || `Address ${idx + 1}`}
+                                    extra={
+                                        <Space>
+                                            {addr.isDefault && <Tag color="green">Default</Tag>}
+                                            <Tag color={addr.status === "active" ? "blue" : "default"}>{addr.status || "active"}</Tag>
+                                        </Space>
+                                    }
+                                >
+                                    <p className="text-sm"><strong>Street:</strong> {[addr.address1, addr.address2].filter(Boolean).join(", ") || "N/A"}</p>
+                                    <p className="text-sm"><strong>City:</strong> {addr.city || "N/A"}</p>
+                                    <p className="text-sm"><strong>State:</strong> {addr.state || "N/A"}</p>
+                                    <p className="text-sm"><strong>Pincode:</strong> {addr.pincode || "N/A"}</p>
+                                    {addr.personName && <p className="text-sm"><strong>Contact Name:</strong> {addr.personName}</p>}
+                                    {addr.personMob && <p className="text-sm"><strong>Contact Mobile:</strong> {addr.personMob}</p>}
+                                </Card>
+                            ))}
+                        </div>
+                    </Card>
+                )}
 
                 {/* Account Information */}
                 <Card title="Account Information" bordered>
