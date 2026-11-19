@@ -90,11 +90,15 @@ function User() {
     blockReason = "",
   ) => {
     try {
-      const payload = isBlocked ? { blockReason } : {};
+      const payload = {
+        isBlocked,
+        status: !isBlocked,
+        blockReason: blockReason || "",
+      };
       await blockUser(userId, payload);
       message.success("User status updated");
-      // Refresh data
-      fetchUser();
+      // Refresh current tab data
+      fetchUser(activeTab, buildUserQuery());
     } catch (error) {
       message.error(
         error.response?.data?.message || "Failed to update user status",
