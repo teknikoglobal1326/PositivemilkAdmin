@@ -19,8 +19,12 @@ const BASE_URL = import.meta.env.VITE_BASE_URL;
 
 const UserTable = ({
   data,
+  pagination,
+  searchText = "",
+  onSearchChange = () => {},
   onToggleBlock,
   loading,
+  onShowHistory = () => {},
   onWalletClick = () => {},
   onDeductClick = () => {},
   startDate,
@@ -32,7 +36,6 @@ const UserTable = ({
   activeTabLabel = "All",
 }) => {
   const navigate = useNavigate();
-  const [searchText, setSearchText] = useState("");
   const [isBlockModalVisible, setIsBlockModalVisible] = useState(false);
   const [blockReason, setBlockReason] = useState("");
   const [pendingUserId, setPendingUserId] = useState(null);
@@ -74,21 +77,11 @@ const UserTable = ({
     return "Unverified";
   };
 
-  // Filter data based on search text
-  const filteredData = useMemo(() => {
-    if (!searchText) return data;
-
-    return data.filter(
-      (user) =>
-        (user.name &&
-          user.name.toLowerCase().includes(searchText.toLowerCase())) ||
-        (user.mobileNo && user.mobileNo.includes(searchText)),
-    );
-  }, [data, searchText]);
+  const displayData = data || [];
 
   const exportData = useMemo(
     () =>
-      filteredData.map((user) => ({
+      displayData.map((user) => ({
         Name: user.name || "",
         Email: user.email || "",
         MobileNo: user.mobileNo || "",
@@ -98,7 +91,7 @@ const UserTable = ({
         RemainingBottles: user.remainingBottles || 0,
         Status: getStatusLabel(user),
       })),
-    [filteredData],
+    [displayData],
   );
 
   const exportFileName = `${activeTabLabel.replace(/\s+/g, "-").toLowerCase()}-users${
@@ -235,12 +228,12 @@ const UserTable = ({
             onClick={() => onDeductClick(record)}
             title="Deduct Balance"
           ></Button>
-          {/* <Button
+          <Button
             type="default"
-            icon={<FaHistory />}
+            icon={<FaHistory className="text-gray-600" />}
             onClick={() => onShowHistory && onShowHistory(record)}
-            title="Show History"
-          ></Button> */}
+            title="Wallet History"
+          ></Button>
           {/* <Button type="primary" danger icon={<FaTrash />} onClick={() => onDelete(record)}></Button> */}
         </Space>
       ),
@@ -286,7 +279,8 @@ const UserTable = ({
             enterButton
             size="large"
             value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
+            onChange={(e) => onSearchChange(e.target.value)}
+            onSearch={(val) => onSearchChange(val)}
             style={{ maxWidth: 400 }}
           />
           <DatePicker
@@ -311,13 +305,14 @@ const UserTable = ({
         />
       </div>
       <Table
-        dataSource={filteredData}
+        dataSource={displayData}
         columns={columns}
         rowKey={(record) => record._id || record.id || record.mobileNo}
         scroll={{ x: true }}
         bordered={false}
         size="small"
         loading={loading}
+        pagination={pagination}
       />
     </>
   );

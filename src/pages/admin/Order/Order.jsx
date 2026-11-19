@@ -23,7 +23,8 @@ function Order() {
       <div className="lg:px-10 px-5 my-8">
         <div className="md:flex items-center gap-4 justify-between">
           <Input.Search
-            placeholder="Search by name"
+            placeholder="Search by name or booking id"
+            allowClear
             onChange={(e) => setSearchText(e.target.value)}
             style={{
               maxWidth: 300,

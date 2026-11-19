@@ -9,6 +9,10 @@ const WalletUpdateModal = ({ visible, user, onUpdate, onClose, loading }) => {
     useEffect(() => {
         if (visible) {
             form.resetFields();
+            form.setFieldsValue({
+                amount: 0,
+                description: "Wallet recharge by Admin"
+            });
         }
     }, [visible, form]);
 
@@ -17,6 +21,7 @@ const WalletUpdateModal = ({ visible, user, onUpdate, onClose, loading }) => {
         try {
             await onUpdate(user._id, {
                 amount: values.amount,
+                description: values.description || "Wallet recharge by Admin",
                 type: 'credit' // Default to credit for adding amount
             });
             form.resetFields();
@@ -56,7 +61,7 @@ const WalletUpdateModal = ({ visible, user, onUpdate, onClose, loading }) => {
                         form={form}
                         layout="vertical"
                         onFinish={handleSubmit}
-                        initialValues={{ amount: 0 }}
+                        initialValues={{ amount: 0, description: "Wallet recharge by Admin" }}
                     >
                         <Form.Item
                             name="amount"
@@ -73,6 +78,16 @@ const WalletUpdateModal = ({ visible, user, onUpdate, onClose, loading }) => {
                                 placeholder="Enter amount to add"
                                 formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
                                 parser={value => value.replace(/\₹\s?|(,*)/g, '')}
+                            />
+                        </Form.Item>
+
+                        <Form.Item
+                            name="description"
+                            label="Description"
+                        >
+                            <Input.TextArea
+                                rows={2}
+                                placeholder="Enter description (optional)"
                             />
                         </Form.Item>
 

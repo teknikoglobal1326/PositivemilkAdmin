@@ -5,23 +5,13 @@ import moment from "moment";
 
 const BASE_URL = import.meta.env.VITE_BASE_URL;
 
-const WalletHistoryTable = ({ data, loading }) => {
-    const [searchText, setSearchText] = useState("");
-
-    // Filter data based on search text (Name or Mobile No)
-    const filteredData = useMemo(() => {
-        if (!searchText) return data;
-
-        return data.filter((item) => {
-            const user = item.userId || item.user || item;
-            return (
-                (user.name &&
-                    user.name.toLowerCase().includes(searchText.toLowerCase())) ||
-                (user.mobileNo && user.mobileNo.includes(searchText))
-            );
-        });
-    }, [data, searchText]);
-
+const WalletHistoryTable = ({
+    data,
+    loading,
+    pagination,
+    searchText = "",
+    onSearchChange = () => {},
+}) => {
     const columns = [
         {
             title: "Avatar",
@@ -110,18 +100,20 @@ const WalletHistoryTable = ({ data, loading }) => {
                     enterButton
                     size="large"
                     value={searchText}
-                    onChange={(e) => setSearchText(e.target.value)}
+                    onChange={(e) => onSearchChange(e.target.value)}
+                    onSearch={(val) => onSearchChange(val)}
                     style={{ maxWidth: 400 }}
                 />
             </div>
             <Table
-                dataSource={filteredData}
+                dataSource={data || []}
                 columns={columns}
                 rowKey={(record) => record._id}
                 scroll={{ x: true }}
                 bordered={false}
                 size="small"
                 loading={loading}
+                pagination={pagination}
             />
         </>
     );
