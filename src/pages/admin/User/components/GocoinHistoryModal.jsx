@@ -16,8 +16,8 @@ const GocoinHistoryModal = React.memo(({ visible, user, history, loading, onClos
             key: 'action',
             align: 'center',
             render: (action) => (
-                <Tag color="green" style={{ textTransform: 'capitalize' }}>
-                    {action}
+                <Tag color={action === 'credit' ? 'green' : 'red'} style={{ textTransform: 'capitalize' }}>
+                    {action || 'credit'}
                 </Tag>
             )
         },
@@ -26,14 +26,18 @@ const GocoinHistoryModal = React.memo(({ visible, user, history, loading, onClos
             dataIndex: 'amount',
             key: 'amount',
             align: 'center',
-            render: (amount) => <Tag color="blue">{amount}</Tag>
+            render: (amount, record) => (
+                <Tag color={record.action === 'credit' ? 'green' : 'orange'}>
+                    {record.action === 'debit' ? `-₹${amount}` : `+₹${amount}`}
+                </Tag>
+            )
         },
         {
             title: 'Balance After Action',
             dataIndex: 'balance_after_action',
             key: 'balance_after_action',
             align: 'center',
-            render: (balance) => <Tag color="purple">{balance}</Tag>
+            render: (balance) => <Tag color="purple">₹{balance ?? 0}</Tag>
         },
         {
             title: 'Description',
@@ -64,7 +68,7 @@ const GocoinHistoryModal = React.memo(({ visible, user, history, loading, onClos
 
     return (
         <Modal
-            title={`GoCoin History - ${user?.name}`}
+            title={`Wallet History - ${user?.name || 'User'}`}
             open={visible}
             onCancel={onClose}
             footer={null}
@@ -73,7 +77,7 @@ const GocoinHistoryModal = React.memo(({ visible, user, history, loading, onClos
         >
             {!loading && history.length === 0 ? (
                 <div className="text-center py-8">
-                    <p className="text-gray-500">No gocoin history found for this user.</p>
+                    <p className="text-gray-500">No wallet history found for this user.</p>
                 </div>
             ) : (
                 <div className="overflow-x-auto">
@@ -89,4 +93,4 @@ const GocoinHistoryModal = React.memo(({ visible, user, history, loading, onClos
     );
 });
 
-export default GocoinHistoryModal; 
+export default GocoinHistoryModal;

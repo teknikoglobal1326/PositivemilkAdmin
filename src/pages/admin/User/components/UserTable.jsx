@@ -21,6 +21,7 @@ const UserTable = ({
   data,
   onToggleBlock,
   loading,
+  onShowHistory = () => {},
   onWalletClick = () => {},
   onDeductClick = () => {},
   startDate,
@@ -235,12 +236,12 @@ const UserTable = ({
             onClick={() => onDeductClick(record)}
             title="Deduct Balance"
           ></Button>
-          {/* <Button
+          <Button
             type="default"
-            icon={<FaHistory />}
+            icon={<FaHistory className="text-gray-600" />}
             onClick={() => onShowHistory && onShowHistory(record)}
-            title="Show History"
-          ></Button> */}
+            title="Wallet History"
+          ></Button>
           {/* <Button type="primary" danger icon={<FaTrash />} onClick={() => onDelete(record)}></Button> */}
         </Space>
       ),
