@@ -28,6 +28,10 @@ function User() {
   const [activeTab, setActiveTab] = useState("new");
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [searchText, setSearchText] = useState("");
   const [userCounts, setUserCounts] = useState({
     all: 0,
     new: 0,
@@ -52,17 +56,15 @@ function User() {
   const [selectedDeductUser, setSelectedDeductUser] = useState(null);
   const [deductLoading, setDeductLoading] = useState(false);
 
-  const buildUserQuery = () => ({
-    startDate: startDate ? startDate.format("YYYY-MM-DD") : undefined,
-    endDate: endDate ? endDate.format("YYYY-MM-DD") : undefined,
-  });
-
   const fetchUser = useCallback(async (type, params = {}) => {
     setLoading(true);
     try {
       const res = await getAllUser(type, params);
-      setUser(res.data);
-      setUserCounts(res.counts);
+      setUser(res.data || []);
+      setTotalUsers(res.total || 0);
+      if (res.counts) {
+        setUserCounts(res.counts);
+      }
     } catch {
       message.error("Failed to load user.");
     } finally {
@@ -70,18 +72,56 @@ function User() {
     }
   }, []);
 
+  const handleTabChange = (key) => {
+    setActiveTab(key);
+    setPage(1);
+    setSearchText("");
+  };
+
+  const handleSearchChange = (val) => {
+    setSearchText(val);
+    setPage(1);
+  };
+
   useEffect(() => {
-    fetchUser(activeTab, {});
-  }, [activeTab, fetchUser]);
+    const timer = setTimeout(() => {
+      fetchUser(activeTab, {
+        page,
+        limit: pageSize,
+        search: searchText ? searchText.trim() : undefined,
+        startDate: startDate ? startDate.format("YYYY-MM-DD") : undefined,
+        endDate: endDate ? endDate.format("YYYY-MM-DD") : undefined,
+      });
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [activeTab, page, pageSize, searchText, startDate, endDate, fetchUser]);
 
   const handleApplyDateFilter = () => {
-    fetchUser(activeTab, buildUserQuery());
+    setPage(1);
+    fetchUser(activeTab, {
+      page: 1,
+      limit: pageSize,
+      search: searchText ? searchText.trim() : undefined,
+      startDate: startDate ? startDate.format("YYYY-MM-DD") : undefined,
+      endDate: endDate ? endDate.format("YYYY-MM-DD") : undefined,
+    });
   };
 
   const handleClearDateFilter = () => {
     setStartDate(null);
     setEndDate(null);
-    fetchUser(activeTab, {});
+    setPage(1);
+  };
+
+  const refreshUserData = () => {
+    fetchUser(activeTab, {
+      page,
+      limit: pageSize,
+      search: searchText ? searchText.trim() : undefined,
+      startDate: startDate ? startDate.format("YYYY-MM-DD") : undefined,
+      endDate: endDate ? endDate.format("YYYY-MM-DD") : undefined,
+    });
   };
 
   const handleToggleBlock = async (
@@ -97,8 +137,7 @@ function User() {
       };
       await blockUser(userId, payload);
       message.success("User status updated");
-      // Refresh current tab data
-      fetchUser(activeTab, buildUserQuery());
+      refreshUserData();
     } catch (error) {
       message.error(
         error.response?.data?.message || "Failed to update user status",
@@ -144,7 +183,7 @@ function User() {
       await updateUserWallet(userId, data);
       message.success("Wallet updated successfully");
       handleCloseWalletModal();
-      fetchUser();
+      refreshUserData();
     } catch (error) {
       message.error(error.response?.data?.message || "Failed to update wallet");
     } finally {
@@ -168,7 +207,7 @@ function User() {
       await deductUserBalance(userId, data);
       message.success("Balance deducted successfully");
       handleCloseDeductModal();
-      fetchUser();
+      refreshUserData();
     } catch (error) {
       message.error(
         error.response?.data?.message || "Failed to deduct balance",
@@ -218,22 +257,44 @@ function User() {
     },
   ];
 
+  const paginationConfig = {
+    current: page,
+    pageSize: pageSize,
+    total: totalUsers,
+    showSizeChanger: true,
+    pageSizeOptions: ["10", "20", "50", "100"],
+    onChange: (newPage, newPageSize) => {
+      setPage(newPage);
+      setPageSize(newPageSize);
+    },
+    showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+  };
+
   return (
     <>
       <div className="lg:px-10 px-5 my-8">
         <Tabs
           activeKey={activeTab}
-          onChange={setActiveTab}
+          onChange={handleTabChange}
           items={tabItems}
           className="mb-6"
         />
 
         {activeTab === "Wallet History" ? (
-          <WalletHistoryTable data={user} loading={loading} />
+          <WalletHistoryTable
+            data={user}
+            loading={loading}
+            pagination={paginationConfig}
+            searchText={searchText}
+            onSearchChange={handleSearchChange}
+          />
         ) : (
           <UserTable
             onDelete={handleDelete}
             data={user}
+            pagination={paginationConfig}
+            searchText={searchText}
+            onSearchChange={handleSearchChange}
             onToggleBlock={handleToggleBlock}
             onShowHistory={handleShowHistory}
             onWalletClick={handleOpenWalletModal}

@@ -36,14 +36,17 @@ const OrderTable = ({ searchText, type, service, onCountsUpdate }) => {
   const [drivers, setDrivers] = useState([]);
   const [selectedDriver, setSelectedDriver] = useState(null);
   const [subscription, setSubscription] = useState(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [totalOrders, setTotalOrders] = useState(0);
 
   const fetchOrderList = useCallback(
-    async (type, filters = {}) => {
+    async (tabType, queryParams = {}) => {
       setLoading(true);
       try {
-        const res = await getAllOrder(service, type, filters);
-        console.log(res.orders[0], "ressssssssssssssss");
+        const res = await getAllOrder(service, tabType, queryParams);
         setOrders(res.orders || []);
+        setTotalOrders(res.total || 0);
         if (res.counts && onCountsUpdate) {
           onCountsUpdate(res.counts);
         }
@@ -57,8 +60,23 @@ const OrderTable = ({ searchText, type, service, onCountsUpdate }) => {
   );
 
   useEffect(() => {
-    fetchOrderList(type);
-  }, [fetchOrderList, type]);
+    setPage(1);
+  }, [type, searchText]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchOrderList(type, {
+        page,
+        limit: pageSize,
+        search: searchText ? searchText.trim() : undefined,
+        startDate: startDate ? startDate.format("YYYY-MM-DD") : undefined,
+        endDate: endDate ? endDate.format("YYYY-MM-DD") : undefined,
+        isSubscription: subscription || undefined,
+      });
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [type, page, pageSize, searchText, startDate, endDate, subscription, fetchOrderList]);
 
   const fetchDrivers = async () => {
     try {
@@ -79,7 +97,14 @@ const OrderTable = ({ searchText, type, service, onCountsUpdate }) => {
   };
 
   const handleRefundSuccess = () => {
-    fetchOrderList(type);
+    fetchOrderList(type, {
+      page,
+      limit: pageSize,
+      search: searchText ? searchText.trim() : undefined,
+      startDate: startDate ? startDate.format("YYYY-MM-DD") : undefined,
+      endDate: endDate ? endDate.format("YYYY-MM-DD") : undefined,
+      isSubscription: subscription || undefined,
+    });
   };
 
   const handleRefundCancel = () => {
@@ -114,44 +139,41 @@ const OrderTable = ({ searchText, type, service, onCountsUpdate }) => {
       setAssignModalVisible(false);
       setSelectedRowKeys([]);
       setSelectedDriver(null);
-      fetchOrderList(type);
+      fetchOrderList(type, {
+        page,
+        limit: pageSize,
+        search: searchText ? searchText.trim() : undefined,
+        startDate: startDate ? startDate.format("YYYY-MM-DD") : undefined,
+        endDate: endDate ? endDate.format("YYYY-MM-DD") : undefined,
+        isSubscription: subscription || undefined,
+      });
     } catch {
       message.error("Error assigning orders");
     }
   };
 
   const handleApplyDateFilter = () => {
-    const filters = {
+    setPage(1);
+    fetchOrderList(type, {
+      page: 1,
+      limit: pageSize,
+      search: searchText ? searchText.trim() : undefined,
       startDate: startDate ? startDate.format("YYYY-MM-DD") : undefined,
       endDate: endDate ? endDate.format("YYYY-MM-DD") : undefined,
       isSubscription: subscription || undefined,
-    };
-    fetchOrderList(type, filters);
+    });
   };
 
   const handleClearDateFilter = () => {
     setStartDate(null);
     setEndDate(null);
     setSubscription(null);
-    fetchOrderList(type);
+    setPage(1);
   };
 
-  const filteredOrders = orders.filter((item) => {
-    const q = searchText.toLowerCase();
-    const bookingId = String(item.booking_id || "").toLowerCase();
-    const customerName = String(item.userId?.name || "").toLowerCase();
-    const mobileNo = String(item.userId?.mobileNo || "").toLowerCase();
-    const orderName = String(item.orderName || "").toLowerCase();
+  const displayOrders = orders;
 
-    return (
-      bookingId.includes(q) ||
-      customerName.includes(q) ||
-      mobileNo.includes(q) ||
-      orderName.includes(q)
-    );
-  });
-
-  const exportData = filteredOrders.map((order) => ({
+  const exportData = displayOrders.map((order) => ({
     BookingID: order.booking_id || "",
     CustomerName: order.userId?.name || "",
     MobileNo: order.userId?.mobileNo || "",
@@ -397,13 +419,25 @@ const OrderTable = ({ searchText, type, service, onCountsUpdate }) => {
       </div>
       <Table
         rowSelection={type === "pending" ? rowSelection : null}
-        dataSource={filteredOrders}
+        dataSource={displayOrders}
         columns={columns}
         rowKey="_id"
         scroll={{ x: true }}
         bordered
         size="small"
         loading={loading}
+        pagination={{
+          current: page,
+          pageSize: pageSize,
+          total: totalOrders,
+          showSizeChanger: true,
+          pageSizeOptions: ["10", "20", "50", "100"],
+          onChange: (newPage, newPageSize) => {
+            setPage(newPage);
+            setPageSize(newPageSize);
+          },
+          showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
+        }}
       />
 
       {type === "pending" && (
