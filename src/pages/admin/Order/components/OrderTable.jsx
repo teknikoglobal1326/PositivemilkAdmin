@@ -136,11 +136,20 @@ const OrderTable = ({ searchText, type, service, onCountsUpdate }) => {
     fetchOrderList(type);
   };
 
-  const filteredOrders = orders.filter((item) =>
-    String(item.booking_id || "")
-      .toLowerCase()
-      .includes(searchText.toLowerCase()),
-  );
+  const filteredOrders = orders.filter((item) => {
+    const q = searchText.toLowerCase();
+    const bookingId = String(item.booking_id || "").toLowerCase();
+    const customerName = String(item.userId?.name || "").toLowerCase();
+    const mobileNo = String(item.userId?.mobileNo || "").toLowerCase();
+    const orderName = String(item.orderName || "").toLowerCase();
+
+    return (
+      bookingId.includes(q) ||
+      customerName.includes(q) ||
+      mobileNo.includes(q) ||
+      orderName.includes(q)
+    );
+  });
 
   const exportData = filteredOrders.map((order) => ({
     BookingID: order.booking_id || "",
@@ -181,6 +190,35 @@ const OrderTable = ({ searchText, type, service, onCountsUpdate }) => {
       dataIndex: "booking_id",
       key: "booking_id",
       align: "center",
+    },
+    {
+      title: "Customer Name",
+      key: "customerName",
+      align: "center",
+      render: (record) => record.userId?.name || "N/A",
+    },
+    {
+      title: "Order Name",
+      dataIndex: "orderName",
+      key: "orderName",
+      align: "center",
+      render: (orderName, record) => {
+        const name =
+          orderName ||
+          (record.productData || [])
+            .map((p) =>
+              p.productId?.name
+                ? `${p.productId.name}${p.quantity ? ` × ${p.quantity}` : ""}`
+                : "",
+            )
+            .filter(Boolean)
+            .join(", ");
+        return name ? (
+          <span className="font-medium text-gray-800">{name}</span>
+        ) : (
+          "N/A"
+        );
+      },
     },
     {
       title: "Phone Number",
