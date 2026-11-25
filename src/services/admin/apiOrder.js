@@ -16,6 +16,15 @@ export const getAllOrder = async (serviceType, orderType, filters = {}) => {
   try {
     let url = `/api/admin/neworder?serviceType=${serviceType}&orderStatus=${orderType}`;
 
+    if (filters.page) {
+      url += `&page=${filters.page}`;
+    }
+    if (filters.limit) {
+      url += `&limit=${filters.limit}`;
+    }
+    if (filters.search) {
+      url += `&search=${encodeURIComponent(filters.search)}`;
+    }
     if (filters.startDate) {
       url += `&startDate=${filters.startDate}`;
     }
