@@ -1,8 +1,8 @@
 import React from "react";
 import { Table, Switch, Button, Popconfirm } from "antd";
-import { FaEdit, FaTrash } from "react-icons/fa";
+import { FaEdit, FaTrash, FaTags } from "react-icons/fa";
 
-function ServiceAreaTable({ loading, data, onEdit, onDelete }) {
+function ServiceAreaTable({ loading, data, onEdit, onDelete, onCustomizePrice }) {
   const columns = [
     {
       title: "Pincode",
@@ -40,6 +40,14 @@ function ServiceAreaTable({ loading, data, onEdit, onDelete }) {
       key: "actions",
       render: (_, record) => (
         <div className="flex gap-2">
+          <Button
+            type="primary"
+            style={{ backgroundColor: "#059669", borderColor: "#059669" }}
+            icon={<FaTags />}
+            onClick={() => onCustomizePrice && onCustomizePrice(record)}
+          >
+            Customize Price
+          </Button>
           <Button
             type="primary"
             icon={<FaEdit />}

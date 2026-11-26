@@ -3,6 +3,7 @@ import { Button, Card, Input, message, Modal, Spin } from "antd";
 import AddServiceAreaModal from "./components/AddServiceAreaModal";
 import EditServiceAreaModal from "./components/EditServiceAreaModal";
 import ServiceAreaTable from "./components/ServiceAreaTable";
+import AreaCustomizePriceModal from "./components/AreaCustomizePriceModal";
 import {
   getAllServiceArea,
   deleteServiceArea,
@@ -15,6 +16,8 @@ function ServiceArea() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [selectedArea, setSelectedArea] = useState(null);
+  const [isCustomizeModalOpen, setIsCustomizeModalOpen] = useState(false);
+  const [selectedCustomizeArea, setSelectedCustomizeArea] = useState(null);
 
   const fetchServiceAreas = async () => {
     setLoading(true);
@@ -92,6 +95,10 @@ function ServiceArea() {
         data={filteredAreas}
         onEdit={openModal}
         onDelete={handleDelete}
+        onCustomizePrice={(area) => {
+          setSelectedCustomizeArea(area);
+          setIsCustomizeModalOpen(true);
+        }}
       />
 
       {editMode ? (
@@ -108,6 +115,15 @@ function ServiceArea() {
           handleCancel={() => closeModal(false)}
         />
       )}
+
+      <AreaCustomizePriceModal
+        isModalOpen={isCustomizeModalOpen}
+        area={selectedCustomizeArea}
+        onClose={() => {
+          setIsCustomizeModalOpen(false);
+          setSelectedCustomizeArea(null);
+        }}
+      />
     </>
   );
 }
